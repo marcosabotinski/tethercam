@@ -30,6 +30,8 @@ final class AppModel: ObservableObject {
     /// Mute switch for the microphone half of the stream. The encoder keeps
     /// running while this is on; only the finished packets are dropped.
     @Published var audioMuted = false { didSet { capture.audioMuted = audioMuted } }
+    /// Black screen instead of the picture; the camera only runs during a take.
+    @Published var previewless = false { didSet { capture.previewless = previewless } }
     /// Mirrored from the audio capture on the one-second stats tick, so the
     /// settings sheet can explain a mute switch that has nothing to mute.
     @Published var audioDenied = false
@@ -151,6 +153,7 @@ struct ContentView: View {
     /// Off by default: a camera that silently sends no sound is the worse
     /// surprise of the two.
     @AppStorage("audioMuted") private var audioMuted = false
+    @AppStorage("previewless") private var previewless = false
     /// Back wide (id 0) is the default: it is the lens a phone in a mount is
     /// pointed with unless someone says otherwise.
     @AppStorage("preferredCameraId") private var preferredCameraId = 0
@@ -168,8 +171,15 @@ struct ContentView: View {
             // touches the overlay above did not claim (gear button, settings
             // button on the permission card). Spacers and padding in the
             // overlay are not hit-testable and let the tap through.
-            CameraPreview(session: model.capture.session) { layer in
-                model.capture.previewLayer = layer
+            Group {
+                if previewless {
+                    Color.black
+                        .onAppear { model.capture.previewLayer = nil }
+                } else {
+                    CameraPreview(session: model.capture.session) { layer in
+                        model.capture.previewLayer = layer
+                    }
+                }
             }
             .background(Color.black)
             .ignoresSafeArea()
@@ -238,6 +248,7 @@ struct ContentView: View {
             model.autoRotation = autoRotation
             model.manualRotation = manualRotation
             model.audioMuted = audioMuted
+            model.previewless = previewless
             model.boot()
             model.selectCamera(UInt8(clamping: preferredCameraId))
         }
@@ -245,6 +256,7 @@ struct ContentView: View {
         .onChange(of: autoRotation) { _, on in model.autoRotation = on }
         .onChange(of: manualRotation) { _, a in model.manualRotation = a }
         .onChange(of: audioMuted) { _, on in model.audioMuted = on }
+        .onChange(of: previewless) { _, on in model.previewless = on }
         .onChange(of: preferredCameraId) { _, id in model.selectCamera(UInt8(clamping: id)) }
         .onChange(of: scenePhase) { _, phase in handleScenePhase(phase) }
         .sheet(isPresented: $showSettings) {
@@ -252,6 +264,7 @@ struct ContentView: View {
                           autoRotation: $autoRotation,
                           manualRotation: $manualRotation,
                           audioMuted: $audioMuted,
+                          previewless: $previewless,
                           preferredCameraId: $preferredCameraId)
         }
     }
@@ -388,6 +401,7 @@ struct SettingsSheet: View {
     @Binding var autoRotation: Bool
     @Binding var manualRotation: Int
     @Binding var audioMuted: Bool
+    @Binding var previewless: Bool
     @Binding var preferredCameraId: Int
     @Environment(\.dismiss) private var dismiss
     @State private var showAdvanced = false
@@ -428,6 +442,12 @@ struct SettingsSheet: View {
                 } footer: {
                     Text(LocalizedStringKey(
                         ReceiverStatus.audioFootnoteKey(for: model.stats.receiver)))
+                }
+
+                Section {
+                    Toggle("settings.previewless", isOn: $previewless)
+                } footer: {
+                    Text("settings.previewless.footer")
                 }
 
                 Section {

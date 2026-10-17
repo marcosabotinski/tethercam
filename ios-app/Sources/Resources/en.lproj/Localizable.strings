@@ -30,6 +30,8 @@
 "settings.audioFootnote.obs" = "Audio goes to OBS over the cable together with the picture. OBS mixes it like any other source.";
 "settings.audioFootnote.macApp" = "The Mac app delivers the picture only. For audio use the iPhone as a microphone in the app on the Mac, or use OBS with the TetherCam plugin.";
 "settings.audioDenied" = "Microphone access denied";
+"settings.previewless" = "Hide the picture";
+"settings.previewless.footer" = "The screen stays black and the camera only runs while the Mac receives the stream. Saves some energy; the picture takes about a second longer to start.";
 "link.privacy" = "Privacy policy";
 "link.getMacApp" = "Get the Mac app";
 "link.getPlugin" = "Get the OBS plugin";

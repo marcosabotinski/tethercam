@@ -57,6 +57,19 @@ public final class CaptureEngine: NSObject {
     /// Lens the preview falls back to after STOP or a disconnect.
     private var previewCameraId: UInt8 = 0
 
+    /// No picture on the phone: while nobody streams the session is stopped
+    /// instead of running the 720p preview. Costs a cold session start (about a
+    /// second) on the next START.
+    public var previewless: Bool {
+        get { motionLock.lock(); defer { motionLock.unlock() }; return previewlessFlag }
+        set {
+            motionLock.lock(); let changed = previewlessFlag != newValue
+            previewlessFlag = newValue; motionLock.unlock()
+            if changed { startPreview() }
+        }
+    }
+    private var previewlessFlag = false
+
     /// Rotation source of truth. `true` (default) follows the device's horizon
     /// via `AVCaptureDevice.RotationCoordinator`, so the encoded frame is upright
     /// no matter how the phone sits in the tripod mount. `false` pins the angle
@@ -310,15 +323,11 @@ public final class CaptureEngine: NSObject {
             sourceFormat = nil
             resetLeveling()
             oversampling = false
-            if let cam = cameras.first(where: { $0.id == previewCameraId }) ?? cameras.first {
+            if !previewless,
+               let cam = cameras.first(where: { $0.id == previewCameraId }) ?? cameras.first {
                 configurePreview(cam)
-            } else if session.isRunning {
-                session.stopRunning()
-                currentDevice = nil
-                DispatchQueue.main.async { [self] in
-                    rotationObservation = nil
-                    rotationCoordinator = nil
-                }
+            } else {
+                stopIdleSession()
             }
         }
     }
@@ -429,8 +438,21 @@ public final class CaptureEngine: NSObject {
         previewCameraId = cam.id
         sessionQueue.async { [self] in
             guard !isEncoding else { return }
-            configurePreview(cam)
+            if previewless { stopIdleSession() } else { configurePreview(cam) }
         }
+    }
+
+    /// sessionQueue only. Stops the session while nobody streams, so the camera
+    /// is released. `start` brings it back up on the next START.
+    private func stopIdleSession() {
+        guard session.isRunning else { return }
+        session.stopRunning()
+        currentDevice = nil
+        DispatchQueue.main.async { [self] in
+            rotationObservation = nil
+            rotationCoordinator = nil
+        }
+        NSLog("[usbcam] idle session stopped")
     }
 
     /// sessionQueue only. Runs the given lens at the preview format with the
