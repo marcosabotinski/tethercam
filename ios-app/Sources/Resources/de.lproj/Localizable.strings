@@ -30,6 +30,8 @@
 "settings.audioFootnote.obs" = "Der Ton geht über das Kabel zusammen mit dem Bild an OBS. OBS mischt ihn wie jede andere Quelle.";
 "settings.audioFootnote.macApp" = "Die Mac-App überträgt nur das Bild. Für Ton nutze das iPhone als Mikrofon in der App am Mac, oder OBS mit dem TetherCam-Plugin.";
 "settings.audioDenied" = "Mikrofonzugriff verweigert";
+"settings.previewless" = "Bild ausblenden";
+"settings.previewless.footer" = "Der Bildschirm bleibt schwarz, und die Kamera läuft nur, während der Mac den Stream empfängt. Spart etwas Energie; das Bild startet etwa eine Sekunde später.";
 "link.privacy" = "Datenschutz";
 "link.getMacApp" = "Mac-App laden";
 "link.getPlugin" = "OBS-Plugin laden";
